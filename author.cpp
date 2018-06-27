@@ -266,7 +266,7 @@ void Author::Confirm()
     sql_query.exec("insert into author values( "
                    " s[0], s[1], s[2].toInt(), s[3] )");
 
-    //model->setQuery(QString("select * from author;"));
+    model->setQuery(QString("select * from author;"));
     tableView->setModel(model);
 
 
