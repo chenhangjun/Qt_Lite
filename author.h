@@ -33,9 +33,14 @@ private Q_SLOTS:
     void Page5();
 
     void info1();
+    void info2();
+    void info3();
 
-    void Confirm();
+    void Confirm1();
+    void Confirm2();
+    void Confirm3();
     void Cancel();
+    void Cancel1();
 
 private:
     Ui::Author *ui;
@@ -58,19 +63,26 @@ private:
     QLabel *lab2;
     QLabel *lab3;
     QLabel *lab4;
+    QLabel *lab5;
+    QLabel *lab6;
+    QLabel *lab7;
+    QLabel *hint;
+    QLabel *hint2;
 
     QLineEdit *line1;
     QLineEdit *line2;
     QLineEdit *line3;
     QLineEdit *line4;
-
-    QSqlDatabase database;
-    QSqlQuery sql_query;
+    QLineEdit *line5;
+    QLineEdit *line6;
+    QLineEdit *line7;
 
     QTableView *tableView;
     QSqlQueryModel *model;
 
     QDialog *subWin;
+
+    QString *columns;
 
     void tableChoose();
     void operation();

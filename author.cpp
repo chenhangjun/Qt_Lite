@@ -12,10 +12,13 @@ Author::Author(QWidget *parent) :
 {
     ui->setupUi(this);
 
-    tableView = new QTableView(this);
-    model = new QSqlQueryModel(tableView);
-
     setFixedSize(900, 600);
+
+    columns = new QString[4];
+    columns[0] = "作者编号";
+    columns[1] = "姓名";
+    columns[2] = "投稿数";
+    columns[3] = "email";
 
     tableChoose();
     operation();
@@ -112,40 +115,19 @@ void Author::operation()
     sele->show();
 
     connect(add, SIGNAL(clicked(bool)), this, SLOT(info1()));
+    connect(dele, SIGNAL(clicked(bool)), this, SLOT(info2()));
+    connect(modi, SIGNAL(clicked(bool)), this, SLOT(info3()));
 
 }
 
 void Author::table()
 {
-    if(QSqlDatabase::contains("qt_sql_default_connection"))
-    {
-        database = QSqlDatabase::database("qt_sql_default_connection");
-    } else {
-        database = QSqlDatabase::addDatabase("QSQLITE");
-        database.setDatabaseName("MyDataBase.db");
-        database.setUserName("Chen");
-        database.setPassword("1030416518");
-    }
+    QSqlDatabase database;
+    database = QSqlDatabase::addDatabase("QSQLITE");
+    database.setDatabaseName("MyDataBase.db");
 
-    if(database.open()) {
-        QString create_sql = "create table author ( 作者编号 varchar(12) primary key, "
-                             "姓名 varchar(30), 投稿数 int, email varchar(50) check "
-                             "(email like '%@%'))";
-        sql_query.prepare(create_sql);
-        if(sql_query.exec())
-        {
-            qDebug() << "Error: Fail to create table." << sql_query.lastError();
-            sql_query.exec("insert into author values( "
-                           " 'H023', '张三', 40, '123@qq.com' )");
-        } else {
-            qDebug() << "Table created!";
-        }
-    } else {
-        qDebug() << "Error: Fail to connect database." << database.lastError();
-    }
-
-
-    model->setQuery(QString("select * from author;"));
+    tableView = new QTableView(this);
+    model = new QSqlQueryModel(tableView);
     model->setHeaderData(0, Qt::Horizontal, tr("作者编号"));
     model->setHeaderData(1, Qt::Horizontal, tr("姓名"));
     model->setHeaderData(2, Qt::Horizontal, tr("投稿数"));
@@ -153,6 +135,31 @@ void Author::table()
     tableView->setModel(model);
     tableView->setGeometry(400, 80, 402, 470);
     tableView->show();
+
+    if(database.open()) {
+      /*  QSqlQuery sql_query;
+        QString create_sql = "create table author ( 作者编号 varchar(12) primary key, "
+                             "姓名 varchar(30), 投稿数 int, email varchar(50) check "
+                             "(email like '%@%'))";
+          sql_query.prepare(create_sql);
+
+        if(!sql_query.exec())
+        {
+            qDebug() << "open??Error: Fail to create table." << sql_query.lastError();
+
+        } else {
+            qDebug() << "Table created!";
+            sql_query.exec("insert into author values( "
+                           " 'H023', '张三', 40, '123@qq\.com' )");
+        }
+        */
+
+        model->setQuery(QString("select * from author;"));
+        database.close();
+
+    } else {
+        qDebug() << "Error: Fail to connect database." << database.lastError();
+    }
 
 }
 
@@ -187,6 +194,10 @@ void Author::Page5()
 
 void Author::info1()
 {
+    hint = new QLabel(this);
+    hint->setText("");
+    hint->setFont(QFont(QString::fromLocal8Bit("宋体"), 10));
+
     subWin = new QDialog();
     lab1 = new QLabel(subWin);
     lab2 = new QLabel(subWin);
@@ -204,7 +215,7 @@ void Author::info1()
     lab1->setText("作者编号");
     lab2->setText("姓名");
     lab3->setText("投稿数");
-    lab4->setText("emal");
+    lab4->setText("email");
 
     lab1->setFont(QFont(QString::fromLocal8Bit("微软雅黑"), 10));
     lab2->setFont(QFont(QString::fromLocal8Bit("微软雅黑"), 10));
@@ -244,12 +255,178 @@ void Author::info1()
     subWin->setFixedSize(400, 300);
     subWin->show();
 
-    connect(confirm, SIGNAL(clicked(bool)), this, SLOT(Confirm()));
+    connect(confirm, SIGNAL(clicked(bool)), this, SLOT(Confirm1()));
     connect(cancel, SIGNAL(clicked(bool)), this, SLOT(Cancel()));
 }
 
+void Author::info2()
+{
+    subWin = new QDialog();
 
-void Author::Confirm()
+    hint = new QLabel(subWin);
+    hint->setText("目标记录筛选条件：");
+    hint->setFont(QFont(QString::fromLocal8Bit("微软雅黑"), 12));
+    hint->setGeometry(10, 10, 140, 20);
+    hint->show();
+
+    lab1 = new QLabel(subWin);
+    lab2 = new QLabel(subWin);
+    lab3 = new QLabel(subWin);
+    lab4 = new QLabel(subWin);
+
+    line1 = new QLineEdit(subWin);
+    line2 = new QLineEdit(subWin);
+    line3 = new QLineEdit(subWin);
+    line4 = new QLineEdit(subWin);
+
+    confirm = new QPushButton(subWin);
+    cancel = new QPushButton(subWin);
+
+    lab1->setText("作者编号");
+    lab2->setText("姓名");
+    lab3->setText("投稿数");
+    lab4->setText("email");
+
+    lab1->setFont(QFont(QString::fromLocal8Bit("微软雅黑"), 10));
+    lab2->setFont(QFont(QString::fromLocal8Bit("微软雅黑"), 10));
+    lab3->setFont(QFont(QString::fromLocal8Bit("微软雅黑"), 10));
+    lab4->setFont(QFont(QString::fromLocal8Bit("微软雅黑"), 10));
+
+    confirm->setText("删除");
+    cancel->setText("取消");
+    confirm->setFont(QFont(QString::fromLocal8Bit("微软雅黑"), 10));
+    cancel->setFont(QFont(QString::fromLocal8Bit("微软雅黑"), 10));
+
+    lab1->setGeometry(50, 50, 80, 30);
+    lab2->setGeometry(50, 95, 100, 30);
+    lab3->setGeometry(50, 140, 100, 30);
+    lab4->setGeometry(50, 185, 100, 30);
+
+    line1->setGeometry(120, 50, 200, 30);
+    line2->setGeometry(120, 95, 200, 30);
+    line3->setGeometry(120, 140, 200, 30);
+    line4->setGeometry(120, 185, 200, 30);
+
+    confirm->setGeometry(60, 230, 80, 30);
+    cancel->setGeometry(260, 230, 80, 30);
+
+    lab1->show();
+    lab2->show();
+    lab3->show();
+    lab4->show();
+    line1->show();
+    line2->show();
+    line3->show();
+    line4->show();
+
+    confirm->show();
+    cancel->show();
+
+    subWin->setFixedSize(400, 300);
+    subWin->show();
+
+    connect(confirm, SIGNAL(clicked(bool)), this, SLOT(Confirm2()));
+    connect(cancel, SIGNAL(clicked(bool)), this, SLOT(Cancel()));
+
+}
+
+void Author::info3()
+{
+    subWin = new QDialog();
+
+    hint = new QLabel(subWin);
+    hint->setText("目标记录筛选条件：");
+    hint->setFont(QFont(QString::fromLocal8Bit("微软雅黑"), 12));
+    hint->setGeometry(20, 10, 140, 20);
+    hint->show();
+
+    hint2 = new QLabel(subWin);
+    hint2->setText("修改属性：");
+    hint2->setFont(QFont(QString::fromLocal8Bit("微软雅黑"), 12));
+    hint2->setGeometry(20, 210, 130, 20);
+    hint2->show();
+
+    lab1 = new QLabel(subWin);
+    lab2 = new QLabel(subWin);
+    lab3 = new QLabel(subWin);
+    lab4 = new QLabel(subWin);
+    lab5 = new QLabel(subWin);
+    lab6 = new QLabel(subWin);
+    lab7 = new QLabel(subWin);
+
+    line1 = new QLineEdit(subWin);
+    line2 = new QLineEdit(subWin);
+    line3 = new QLineEdit(subWin);
+    line4 = new QLineEdit(subWin);
+    line5 = new QLineEdit(subWin);
+    line6 = new QLineEdit(subWin);
+    line7 = new QLineEdit(subWin);
+
+    confirm = new QPushButton(subWin);
+    cancel = new QPushButton(subWin);
+
+    lab1->setText("作者编号");
+    lab2->setText("姓名");
+    lab3->setText("投稿数");
+    lab4->setText("email");
+    lab5->setText("姓名");
+    lab6->setText("投稿数");
+    lab7->setText("email");
+
+    lab1->setFont(QFont(QString::fromLocal8Bit("微软雅黑"), 10));
+    lab2->setFont(QFont(QString::fromLocal8Bit("微软雅黑"), 10));
+    lab3->setFont(QFont(QString::fromLocal8Bit("微软雅黑"), 10));
+    lab4->setFont(QFont(QString::fromLocal8Bit("微软雅黑"), 10));
+    lab5->setFont(QFont(QString::fromLocal8Bit("微软雅黑"), 10));
+    lab6->setFont(QFont(QString::fromLocal8Bit("微软雅黑"), 10));
+    lab7->setFont(QFont(QString::fromLocal8Bit("微软雅黑"), 10));
+
+    confirm->setText("修改");
+    cancel->setText("取消");
+    confirm->setFont(QFont(QString::fromLocal8Bit("微软雅黑"), 10));
+    cancel->setFont(QFont(QString::fromLocal8Bit("微软雅黑"), 10));
+
+    lab1->setGeometry(50, 40, 100, 30);
+    lab2->setGeometry(50, 80, 100, 30);
+    lab3->setGeometry(50, 120, 100, 30);
+    lab4->setGeometry(50, 160, 100, 30);
+    lab5->setGeometry(50, 240, 100, 30);
+    lab6->setGeometry(50, 280, 100, 30);
+    lab7->setGeometry(50, 320, 100, 30);
+
+    line1->setGeometry(120, 40, 200, 30);
+    line2->setGeometry(120, 80, 200, 30);
+    line3->setGeometry(120, 120, 200, 30);
+    line4->setGeometry(120, 160, 200, 30);
+    line5->setGeometry(120, 240, 200, 30);
+    line6->setGeometry(120, 280, 200, 30);
+    line7->setGeometry(120, 320, 200, 30);
+
+    confirm->setGeometry(60, 370, 80, 30);
+    cancel->setGeometry(260, 370, 80, 30);
+
+    lab1->show();
+    lab2->show();
+    lab3->show();
+    lab4->show();
+    line1->show();
+    line2->show();
+    line3->show();
+    line4->show();
+
+    confirm->show();
+    cancel->show();
+
+    subWin->setFixedSize(400, 420);
+    subWin->show();
+
+    connect(confirm, SIGNAL(clicked(bool)), this, SLOT(Confirm3()));
+    connect(cancel, SIGNAL(clicked(bool)), this, SLOT(Cancel1()));
+
+}
+
+
+void Author::Confirm1()
 {
 
     QString *s = new QString[4];
@@ -263,18 +440,147 @@ void Author::Confirm()
 */
     Cancel();
 
-    sql_query.exec("insert into author values( "
-                   " s[0], s[1], s[2].toInt(), s[3] )");
+    QSqlDatabase database;
+    database = QSqlDatabase::addDatabase("QSQLITE");
+    database.setDatabaseName("MyDataBase.db");
+    if(database.open()) {
+        QSqlQuery sql_query;
+        QString insert_sql = "insert into author values('" + s[0] + "','" +
+                s[1] + "'," + s[2] + ",'" + s[3] + "')";
 
-    model->setQuery(QString("select * from author;"));
-    tableView->setModel(model);
+        sql_query.prepare(insert_sql);
+        sql_query.exec();
 
+        model->setQuery(QString("select * from author;"));
+
+        database.close();
+    }
+
+    delete []s;
+
+}
+
+void Author::Confirm2()
+{
+    QString *s = new QString[4];
+    int flag = 0;
+    s[0] = line1->text();
+    s[1] = line2->text();
+    s[2] = line3->text();
+    s[3] = line4->text();
+
+    Cancel();
+
+    QString *dele = new QString[4];
+    int cnt = 0;
+    for(int i = 0; i < 4; i++) {
+        if(s[i] != "") {
+            if(flag == 0) {
+                dele[cnt++] = columns[i] + "='" + s[i] + "'";
+                flag = 1;
+            } else {
+               dele[cnt++] = "and " + columns[i] + "='" + s[i] + "'";
+            }
+        }
+    }
+    if(cnt != 0) {
+        QString delete_sql = "delete from author where ";
+        for(int i = 0; i < cnt; i++) {
+            delete_sql += dele[i];
+        }
+
+        QSqlDatabase database;
+        database = QSqlDatabase::addDatabase("QSQLITE");
+        database.setDatabaseName("MyDataBase.db");
+        if(database.open()) {
+            QSqlQuery sql_query;
+            sql_query.prepare(delete_sql);
+            sql_query.exec();
+
+            model->setQuery(QString("select * from author;"));
+
+            database.close();
+        }
+
+    }
+
+    delete []s;
+    delete []dele;
+
+}
+
+void Author::Confirm3()
+{
+    QString *s = new QString[7];
+    int flag = 0;
+    s[0] = line1->text();
+    s[1] = line2->text();
+    s[2] = line3->text();
+    s[3] = line4->text();
+    s[4] = line5->text();
+    s[5] = line6->text();
+    s[6] = line7->text();
+
+    Cancel1();
+
+    QString *modi = new QString[7];
+    int cnt1, cnt = 0;
+    for(int i = 0; i < 4; i++) {
+        if(s[i] != "") {
+            if(flag == 0) {
+                modi[cnt++] = columns[i] + "='" + s[i] + "'";
+                flag = 1;
+            } else {
+               modi[cnt++] = "and " + columns[i] + "='" + s[i] + "'";
+            }
+        }
+    }
+    cnt1 = cnt;
+    flag = 0;
+    for(int i = 4; i < 7; i++) {
+        if(s[i] != "") {
+            if(flag == 0) {
+                modi[cnt++] = columns[i - 3] + "='" + s[i] + "'";
+                flag = 1;
+            } else {
+                modi[cnt++] = columns[i - 3] + "='" + s[i] + "',";
+            }
+        }
+    }
+    if(cnt1 != 0 && cnt1 != cnt ) {
+        QString update_sql = "update author set ";
+        for(int i = cnt - 1; i >= cnt1; i--) {
+            update_sql += modi[i];
+        }
+        update_sql += " where ";
+        for(int i = 0; i < cnt1; i++) {
+            update_sql +=modi[i];
+        }
+
+        QSqlDatabase database;
+        database = QSqlDatabase::addDatabase("QSQLITE");
+        database.setDatabaseName("MyDataBase.db");
+        if(database.open()) {
+            QSqlQuery sql_query;
+            sql_query.prepare(update_sql);
+            sql_query.exec();
+
+            model->setQuery(QString("select * from author;"));
+
+            database.close();
+        }
+
+    }
+
+    delete []s;
+    delete []modi;
 
 }
 
 void Author::Cancel()
 {
     subWin->close();
+    delete hint;
     delete lab1;
     delete lab2;
     delete lab3;
@@ -283,4 +589,29 @@ void Author::Cancel()
     delete line2;
     delete line3;
     delete line4;
+    delete confirm;
+    delete cancel;
+}
+
+void Author::Cancel1()
+{
+    subWin->close();
+    delete hint;
+    delete hint2;
+    delete lab1;
+    delete lab2;
+    delete lab3;
+    delete lab4;
+    delete lab5;
+    delete lab6;
+    delete lab7;
+    delete line1;
+    delete line2;
+    delete line3;
+    delete line4;
+    delete line5;
+    delete line6;
+    delete line7;
+    delete confirm;
+    delete cancel;
 }
