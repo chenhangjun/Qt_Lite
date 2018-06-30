@@ -125,8 +125,15 @@ void Author::operation()
 void Author::table()
 {
     QSqlDatabase database;
-    database = QSqlDatabase::addDatabase("QSQLITE");
-    database.setDatabaseName("MyDataBase.db");
+    if (QSqlDatabase::contains("qt_sql_default_connection"))
+    {
+        database = QSqlDatabase::database("qt_sql_default_connection");
+    }
+    else
+    {
+        database = QSqlDatabase::addDatabase("QSQLITE");
+        database.setDatabaseName("MyDataBase.db");
+    }
 
     tableView = new QTableView(this);
     model = new QSqlQueryModel(tableView);
@@ -411,10 +418,16 @@ void Author::info3()
     lab2->show();
     lab3->show();
     lab4->show();
+    lab5->show();
+    lab6->show();
+    lab7->show();
     line1->show();
     line2->show();
     line3->show();
     line4->show();
+    line5->show();
+    line6->show();
+    line7->show();
 
     confirm->show();
     cancel->show();
@@ -513,13 +526,36 @@ void Author::Confirm1()
 */
     Cancel();
 
+    QString s1 = "", s2 = "";
+    int cnt = 0;
+
+    for(int i = 0; i < 4; i++) {
+        if(s[i] != "") {
+            if(cnt == 0) {
+               s1 += columns[i];
+               s2 += "'" + s[i] + "'";
+               cnt++;
+            } else {
+               s1 += "," + columns[i];
+               s2 += ",'" + s[i] + "'";
+            }
+        }
+    }
+
     QSqlDatabase database;
-    database = QSqlDatabase::addDatabase("QSQLITE");
-    database.setDatabaseName("MyDataBase.db");
+    if (QSqlDatabase::contains("qt_sql_default_connection"))
+    {
+        database = QSqlDatabase::database("qt_sql_default_connection");
+    }
+    else
+    {
+        database = QSqlDatabase::addDatabase("QSQLITE");
+        database.setDatabaseName("MyDataBase.db");
+    }
+
     if(database.open()) {
         QSqlQuery sql_query;
-        QString insert_sql = "insert into author values('" + s[0] + "','" +
-                s[1] + "'," + s[2] + ",'" + s[3] + "')";
+        QString insert_sql = "insert into author (" + s1 + ") values (" + s2 +")";
 
         sql_query.prepare(insert_sql);
         sql_query.exec();
@@ -558,17 +594,34 @@ void Author::Confirm2()
     }
     if(cnt != 0) {
         QString delete_sql = "delete from author where ";
+        QString where = "";
         for(int i = 0; i < cnt; i++) {
-            delete_sql += dele[i];
+            where += dele[i];
         }
+        delete_sql += where;
+
+        where = "delete from essay where essay.作者编号 in (select author.作者编号 "
+                "from author where " + where + ")";
 
         QSqlDatabase database;
-        database = QSqlDatabase::addDatabase("QSQLITE");
-        database.setDatabaseName("MyDataBase.db");
+        if (QSqlDatabase::contains("qt_sql_default_connection"))
+        {
+            database = QSqlDatabase::database("qt_sql_default_connection");
+        }
+        else
+        {
+            database = QSqlDatabase::addDatabase("QSQLITE");
+            database.setDatabaseName("MyDataBase.db");
+        }
+
         if(database.open()) {
             QSqlQuery sql_query;
+            sql_query.prepare(where);
+            sql_query.exec();
+
             sql_query.prepare(delete_sql);
             sql_query.exec();
+
 
             model->setQuery(QString("select * from author;"));
 
@@ -631,8 +684,16 @@ void Author::Confirm3()
         }
 
         QSqlDatabase database;
-        database = QSqlDatabase::addDatabase("QSQLITE");
-        database.setDatabaseName("MyDataBase.db");
+        if (QSqlDatabase::contains("qt_sql_default_connection"))
+        {
+            database = QSqlDatabase::database("qt_sql_default_connection");
+        }
+        else
+        {
+            database = QSqlDatabase::addDatabase("QSQLITE");
+            database.setDatabaseName("MyDataBase.db");
+        }
+
         if(database.open()) {
             QSqlQuery sql_query;
             sql_query.prepare(update_sql);
@@ -680,8 +741,16 @@ void Author::Confirm4()
         }
 
         QSqlDatabase database;
-        database = QSqlDatabase::addDatabase("QSQLITE");
-        database.setDatabaseName("MyDataBase.db");
+        if (QSqlDatabase::contains("qt_sql_default_connection"))
+        {
+            database = QSqlDatabase::database("qt_sql_default_connection");
+        }
+        else
+        {
+            database = QSqlDatabase::addDatabase("QSQLITE");
+            database.setDatabaseName("MyDataBase.db");
+        }
+
         if(database.open()) {
             QSqlQuery sql_query;
             //sql_query.prepare(select_sql);
