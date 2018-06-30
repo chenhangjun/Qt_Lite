@@ -35,10 +35,12 @@ private Q_SLOTS:
     void info1();
     void info2();
     void info3();
+    void info4();
 
     void Confirm1();
     void Confirm2();
     void Confirm3();
+    void Confirm4();
     void Cancel();
     void Cancel1();
 
