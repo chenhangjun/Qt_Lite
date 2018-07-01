@@ -595,13 +595,24 @@ void Author::Confirm2()
     if(cnt != 0) {
         QString delete_sql = "delete from author where ";
         QString where = "";
+        QString where1;
+        QString where2;
+
         for(int i = 0; i < cnt; i++) {
             where += dele[i];
         }
         delete_sql += where;
+        where1 = where;
+        where2 = where;
 
         where = "delete from essay where essay.作者编号 in (select author.作者编号 "
                 "from author where " + where + ")";
+        where1 = "delete from spending where spending.稿件编号 in (select "
+                 "essay.稿件编号 from essay where essay.作者编号 in (select "
+                 "author.作者编号 from author where " + where1 + "))";
+        where2 = "delete from review where review.稿件编号 in (select "
+                 "essay.稿件编号 from essay where essay.作者编号 in (select "
+                 "author.作者编号 form author where " + where2 + "))";
 
         QSqlDatabase database;
         if (QSqlDatabase::contains("qt_sql_default_connection"))
@@ -616,6 +627,12 @@ void Author::Confirm2()
 
         if(database.open()) {
             QSqlQuery sql_query;
+            sql_query.prepare(where2);
+            sql_query.exec();
+
+            sql_query.prepare(where1);
+            sql_query.exec();
+
             sql_query.prepare(where);
             sql_query.exec();
 

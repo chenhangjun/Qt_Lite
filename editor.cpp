@@ -579,6 +579,7 @@ void Editor::Confirm2()
     Cancel();
 
     QString *dele = new QString[4];
+    QString where = "";
     int cnt = 0;
     for(int i = 0; i < 4; i++) {
         if(s[i] != "") {
@@ -593,8 +594,12 @@ void Editor::Confirm2()
     if(cnt != 0) {
         QString delete_sql = "delete from editor where ";
         for(int i = 0; i < cnt; i++) {
-            delete_sql += dele[i];
+            where += dele[i];
         }
+        delete_sql += where;
+
+        where = "delete from review where review.审稿人编号 in (select "
+                " editor.编号 from editor where " + where + ")";
 
         QSqlDatabase database;
         if (QSqlDatabase::contains("qt_sql_default_connection"))
@@ -609,6 +614,9 @@ void Editor::Confirm2()
 
         if(database.open()) {
             QSqlQuery sql_query;
+            sql_query.prepare(where);
+            sql_query.exec();
+
             sql_query.prepare(delete_sql);
             sql_query.exec();
 

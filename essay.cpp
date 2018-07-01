@@ -614,19 +614,18 @@ void Essay::Confirm1()
 
 void Essay::Confirm2()
 {
-    QString *s = new QString[5];
+    QString *s = new QString[4];
     int flag = 0;
     s[0] = line1->text();
     s[1] = line2->text();
     s[2] = line3->text();
     s[3] = line4->text();
-    s[4] = line5->text();
 
     Cancel();
 
-    QString *dele = new QString[5];
+    QString *dele = new QString[4];
     int cnt = 0;
-    for(int i = 0; i < 5; i++) {
+    for(int i = 0; i < 4; i++) {
         if(s[i] != "") {
             if(flag == 0) {
                 dele[cnt++] = columns[i] + "='" + s[i] + "'";
@@ -638,9 +637,19 @@ void Essay::Confirm2()
     }
     if(cnt != 0) {
         QString delete_sql = "delete from essay where ";
+        QString where = "";
+        QString where1;
+
         for(int i = 0; i < cnt; i++) {
-            delete_sql += dele[i];
+            where += dele[i];
         }
+        delete_sql += where;
+        where1 = where;
+
+        where = "delete from spending where spending.稿件编号 in (select "
+                "essay.稿件编号 from essay where " + where + ")";
+        where1 = "delete from review where review.稿件编号 in (select "
+                 "essay.稿件编号 from essay where " + where1 + ")";
 
         QSqlDatabase database;
         if (QSqlDatabase::contains("qt_sql_default_connection"))
@@ -655,8 +664,14 @@ void Essay::Confirm2()
 
         if(database.open()) {
             QSqlQuery sql_query;
+            sql_query.prepare(where);
+            sql_query.exec();
+            sql_query.prepare(where1);
+            sql_query.exec();
+
             sql_query.prepare(delete_sql);
             sql_query.exec();
+
 
             model->setQuery(QString("select * from essay;"));
 

@@ -9,4 +9,14 @@ int main(int argc, char *argv[])
     w.show();
 
     return a.exec();
+
+
+    /* delete
+     * author->essay;  ! !
+     * author->essay->spending;  ! !
+     * author->essay->review;   ! ???
+     * essay->spending;   !  !
+     * essay->review;   !  !
+     * editor->review;  !  !
+     * */
 }
