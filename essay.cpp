@@ -678,6 +678,7 @@ void Essay::Confirm2()
     }
     if(cnt != 0) {
         QString delete_sql = "delete from essay where ";
+        QString count_sql = "select * from essay where ";
         QString where = "";
         QString where1;
 
@@ -685,6 +686,9 @@ void Essay::Confirm2()
             where += dele[i];
         }
         delete_sql += where;
+        count_sql += where;
+        count_sql += ";";
+
         where1 = where;
 
         where = "delete from spending where spending.稿件编号 in (select "
@@ -705,22 +709,32 @@ void Essay::Confirm2()
 
         if(database.open()) {
             QSqlQuery sql_query;
-            sql_query.prepare(where);
-            sql_query.exec();
-            sql_query.prepare(where1);
-            sql_query.exec();
-
-            sql_query.prepare(delete_sql);
-            sql_query.exec();
-
-
+            model->setQuery(count_sql);
+            int row_cnt1 = model->rowCount();
             model->setQuery(QString("select * from essay;"));
-            int row_cnt = model->rowCount();
+            if(row_cnt1 == 0) {
+                Message *message = new Message();
+                QString ss = "记录不存在！";
+                message->set_Text(ss);
+                message->show();
+            } else {
+                sql_query.prepare(where);
+                sql_query.exec();
+                sql_query.prepare(where1);
+                sql_query.exec();
+
+                sql_query.prepare(delete_sql);
+                sql_query.exec();
+
+
+                model->setQuery(QString("select * from essay;"));
+                int row_cnt = model->rowCount();
+
+                result->setText(tr("删除 %1 条记录").arg(cnt_all - row_cnt));
+                cnt_all = row_cnt;
+            }
 
             database.close();
-
-            result->setText(tr("删除 %1 条记录").arg(cnt_all - row_cnt));
-            cnt_all = row_cnt;
 
         }
 

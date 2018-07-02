@@ -151,7 +151,7 @@ void Review::table()
     tableView->show();
 
     if(database.open()) {
-        QSqlQuery sql_query;
+       /* QSqlQuery sql_query;
 
         QString create_sql = "create table review ( 审稿人编号 varchar(12) constraint "
                              "fk_editor references editor(编号), 稿件编号 varchar(12) "
@@ -166,7 +166,7 @@ void Review::table()
         } else {
             qDebug() << "Table created!";
         }
-
+      */
         model->setQuery(QString("select * from review;"));
         cnt_all = model->rowCount();
         database.close();
@@ -599,9 +599,12 @@ void Review::Confirm2()
     }
     if(cnt != 0) {
         QString delete_sql = "delete from review where ";
+        QString count_sql = "select * from review where ";
         for(int i = 0; i < cnt; i++) {
             delete_sql += dele[i];
+            count_sql += dele[i];
         }
+        count_sql += ";";
 
         QSqlDatabase database;
         if (QSqlDatabase::contains("qt_sql_default_connection"))
@@ -616,17 +619,26 @@ void Review::Confirm2()
 
         if(database.open()) {
             QSqlQuery sql_query;
-
-            sql_query.prepare(delete_sql);
-            sql_query.exec();
-
+            model->setQuery(count_sql);
+            int row_cnt1 = model->rowCount();
             model->setQuery(QString("select * from review;"));
-            int row_cnt = model->rowCount();
+            if(row_cnt1 == 0) {
+                Message *message = new Message();
+                QString ss = "记录不存在！";
+                message->set_Text(ss);
+                message->show();
+            } else {
+                sql_query.prepare(delete_sql);
+                sql_query.exec();
+
+                model->setQuery(QString("select * from review;"));
+                int row_cnt = model->rowCount();
+
+                result->setText(tr("删除 %1 条记录").arg(cnt_all - row_cnt));
+                cnt_all = row_cnt;
+            }
 
             database.close();
-
-            result->setText(tr("删除 %1 条记录").arg(cnt_all - row_cnt));
-            cnt_all = row_cnt;
 
         }
 

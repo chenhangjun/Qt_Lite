@@ -623,7 +623,7 @@ void Author::Confirm2()
     Cancel();
 
     QString *dele = new QString[4];
-    QString count_sql = "select count(*) from author where ";
+    QString count_sql = "select * from author where ";
 
     int cnt = 0;
     for(int i = 0; i < 4; i++) {
@@ -647,6 +647,7 @@ void Author::Confirm2()
         }
         delete_sql += where;
         count_sql += where;
+        count_sql += ";";
         where1 = where;
         where2 = where;
 
@@ -672,25 +673,36 @@ void Author::Confirm2()
 
         if(database.open()) {
             QSqlQuery sql_query;
-            sql_query.prepare(where2);
-            sql_query.exec();
 
-            sql_query.prepare(where1);
-            sql_query.exec();
-
-            sql_query.prepare(where);
-            sql_query.exec();
-
-            sql_query.prepare(delete_sql);
-            sql_query.exec();
-
+            model->setQuery(count_sql);
+            int row_cnt1 = model->rowCount();
             model->setQuery(QString("select * from author;"));
-            int row_cnt = model->rowCount();
+            if(row_cnt1 == 0) {
+                Message *message = new Message();
+                QString ss = "记录不存在！";
+                message->set_Text(ss);
+                message->show();
+            } else {
+                sql_query.prepare(where2);
+                sql_query.exec();
 
-            database.close();
+                sql_query.prepare(where1);
+                sql_query.exec();
 
-            result->setText(tr("删除 %1 条记录").arg(cnt_all - row_cnt));
-            cnt_all = row_cnt;
+                sql_query.prepare(where);
+                sql_query.exec();
+
+                sql_query.prepare(delete_sql);
+                sql_query.exec();
+
+                model->setQuery(QString("select * from author;"));
+                int row_cnt = model->rowCount();
+
+                result->setText(tr("删除 %1 条记录").arg(cnt_all - row_cnt));
+                cnt_all = row_cnt;
+            }
+             database.close();
+
         }
 
     }
