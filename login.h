@@ -32,6 +32,7 @@ private:
     QPushButton *cancle;
 
     bool Check();
+
 };
 
 #endif // LOGIN_H

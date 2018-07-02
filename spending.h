@@ -70,6 +70,7 @@ private:
     QLabel *lab7;
     QLabel *hint;
     QLabel *hint2;
+    QLabel *result;
 
     QLineEdit *line1;
     QLineEdit *line2;
@@ -85,6 +86,8 @@ private:
     QDialog *subWin;
 
     QString *columns;
+
+    int cnt_all;
 
     void tableChoose();
     void operation();

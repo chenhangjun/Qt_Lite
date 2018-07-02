@@ -4,6 +4,7 @@
 #include "essay.h"
 #include "author.h"
 #include "review.h"
+#include "message.h"
 #include <QStringList>
 
 Spending::Spending(QWidget *parent) :
@@ -12,13 +13,18 @@ Spending::Spending(QWidget *parent) :
 {
     ui->setupUi(this);
 
-    setFixedSize(900, 600);
+    setFixedSize(900, 620);
 
     columns = new QString[4];
     columns[0] = "稿件编号";
     columns[1] = "稿费";
     columns[2] = "审稿费";
     columns[3] = "版面费";
+
+    result = new QLabel(this);
+    result->setGeometry(450, 570, 400, 30);
+    result->setFont(QFont(QString::fromLocal8Bit("微软雅黑"), 13));
+    result->show();
 
     tableChoose();
     operation();
@@ -163,6 +169,7 @@ void Spending::table()
 
 */
         model->setQuery(QString("select * from spending;"));
+        cnt_all = model->rowCount();
         database.close();
 
     } else {
@@ -522,46 +529,76 @@ void Spending::Confirm1()
     QStringList list;
     list << line1->text() << line2->text() << line3->text() << line4->text();
 */
-    Cancel();
 
-    QString s1 = "", s2 = "";
-    int cnt = 0;
+    if(s[0] == "") {
+        Message *message = new Message();
+        QString ss = "稿件编号不能为空！";
+        message->set_Text(ss);
+        message->show();
+    } else {
+        QSqlDatabase database;
+        if (QSqlDatabase::contains("qt_sql_default_connection"))
+        {
+            database = QSqlDatabase::database("qt_sql_default_connection");
+        }
+        else
+        {
+            database = QSqlDatabase::addDatabase("QSQLITE");
+            database.setDatabaseName("MyDataBase.db");
+        }
 
-    for(int i = 0; i < 4; i++) {
-        if(s[i] != "") {
-            if(cnt == 0) {
-               s1 += columns[i];
-               s2 += "'" + s[i] + "'";
-               cnt++;
+        if(database.open()) {
+            QString cnt_sele1 = "select * from spending where 稿件编号 = '" + s[0] + "';";
+            model->setQuery(cnt_sele1);
+            int row_cnt1 = model->rowCount();
+            QString cnt_sele2 = "select * from essay where 稿件编号 = '" + s[0] + "';";
+            model->setQuery(cnt_sele2);
+            int row_cnt2 = model->rowCount();
+            model->setQuery(QString("select * from spending;"));
+            if(row_cnt1 > 0) {
+                Message *message = new Message();
+                QString ss = "该稿件编号已存在！";
+                message->set_Text(ss);
+                message->show();
+            } else if(row_cnt2 == 0) {
+                Message *message = new Message();
+                QString ss = "该稿件编号不存在！";
+                message->set_Text(ss);
+                message->show();
             } else {
-               s1 += "," + columns[i];
-               s2 += ",'" + s[i] + "'";
+                Cancel();
+
+                QString s1 = "", s2 = "";
+                int cnt = 0;
+
+                for(int i = 0; i < 4; i++) {
+                    if(s[i] != "") {
+                        if(cnt == 0) {
+                           s1 += columns[i];
+                           s2 += "'" + s[i] + "'";
+                           cnt++;
+                        } else {
+                           s1 += "," + columns[i];
+                           s2 += ",'" + s[i] + "'";
+                        }
+                    }
+                }
+
+                QSqlQuery sql_query;
+                QString insert_sql = "insert into spending (" + s1 + ") values (" + s2 +")";
+
+                sql_query.prepare(insert_sql);
+                sql_query.exec();
+
+                model->setQuery(QString("select * from spending;"));
+                result->setText("新增1条记录。");
+                cnt_all++;
+
             }
+            database.close();
         }
     }
 
-    QSqlDatabase database;
-    if (QSqlDatabase::contains("qt_sql_default_connection"))
-    {
-        database = QSqlDatabase::database("qt_sql_default_connection");
-    }
-    else
-    {
-        database = QSqlDatabase::addDatabase("QSQLITE");
-        database.setDatabaseName("MyDataBase.db");
-    }
-
-    if(database.open()) {
-        QSqlQuery sql_query;
-        QString insert_sql = "insert into spending (" + s1 + ") values (" + s2 +")";
-
-        sql_query.prepare(insert_sql);
-        sql_query.exec();
-
-        model->setQuery(QString("select * from spending;"));
-
-        database.close();
-    }
 
     delete []s;
 
@@ -614,6 +651,10 @@ void Spending::Confirm2()
 
 
             model->setQuery(QString("select * from spending;"));
+            int row_cnt = model->rowCount();
+
+            result->setText(tr("删除 %1 条记录").arg(cnt_all - row_cnt));
+            cnt_all = row_cnt;
 
             database.close();
         }
@@ -637,67 +678,92 @@ void Spending::Confirm3()
     s[5] = line6->text();
     s[6] = line7->text();
 
-    Cancel1();
+    QString count_sql = "select * from spending where 稿件编号 = '" + s[0] + "';";
 
-    QString *modi = new QString[7];
-    int cnt1, cnt = 0;
-    for(int i = 0; i < 4; i++) {
-        if(s[i] != "") {
-            if(flag == 0) {
-                modi[cnt++] = columns[i] + "='" + s[i] + "'";
-                flag = 1;
-            } else {
-               modi[cnt++] = "and " + columns[i] + "='" + s[i] + "'";
+    QSqlDatabase database;
+    if (QSqlDatabase::contains("qt_sql_default_connection"))
+    {
+        database = QSqlDatabase::database("qt_sql_default_connection");
+    }
+    else
+    {
+        database = QSqlDatabase::addDatabase("QSQLITE");
+        database.setDatabaseName("MyDataBase.db");
+    }
+    if(database.open()) {
+        model->setQuery(count_sql);
+        int row_cnt = model->rowCount();
+        model->setQuery(QString("select * from spending;"));
+        if(s[0] != "" && row_cnt == 0) {
+            Message *message = new Message();
+            QString ss = "该稿件编号不存在！";
+            message->set_Text(ss);
+            message->show();
+        } else {
+            Cancel1();
+
+            QString *modi = new QString[7];
+            int cnt1, cnt = 0;
+            for(int i = 0; i < 4; i++) {
+                if(s[i] != "") {
+                    if(flag == 0) {
+                        modi[cnt++] = columns[i] + "='" + s[i] + "'";
+                        flag = 1;
+                    } else {
+                       modi[cnt++] = "and " + columns[i] + "='" + s[i] + "'";
+                    }
+                }
             }
-        }
-    }
-    cnt1 = cnt;
-    flag = 0;
-    for(int i = 4; i < 7; i++) {
-        if(s[i] != "") {
-            if(flag == 0) {
-                modi[cnt++] = columns[i - 3] + "='" + s[i] + "'";
-                flag = 1;
-            } else {
-                modi[cnt++] = columns[i - 3] + "='" + s[i] + "',";
+            cnt1 = cnt;
+            flag = 0;
+            for(int i = 4; i < 7; i++) {
+                if(s[i] != "") {
+                    if(flag == 0) {
+                        modi[cnt++] = columns[i - 3] + "='" + s[i] + "'";
+                        flag = 1;
+                    } else {
+                        modi[cnt++] = columns[i - 3] + "='" + s[i] + "',";
+                    }
+                }
             }
+            if(cnt1 != 0 && cnt1 != cnt ) {
+                QString update_sql = "update spending set ";
+                QString cnt_sele = "select * from spending where ";
+                for(int i = cnt - 1; i >= cnt1; i--) {
+                    update_sql += modi[i];
+                }
+                update_sql += " where ";
+                for(int i = 0; i < cnt1; i++) {
+                    update_sql += modi[i];
+                    cnt_sele += modi[i];
+                }
+                cnt_sele += ";";
+
+                QSqlQuery sql_query;
+
+                model->setQuery(cnt_sele);
+                int row_cnt = model->rowCount();
+
+                sql_query.prepare(update_sql);
+                sql_query.exec();
+
+                model->setQuery(QString("select * from spending;"));
+
+                result->setText(tr("更新 %1 条记录").arg(row_cnt));
+            }
+
+
+
+            delete []modi;
+
         }
+
+        database.close();
     }
-    if(cnt1 != 0 && cnt1 != cnt ) {
-        QString update_sql = "update spending set ";
-        for(int i = cnt - 1; i >= cnt1; i--) {
-            update_sql += modi[i];
-        }
-        update_sql += " where ";
-        for(int i = 0; i < cnt1; i++) {
-            update_sql +=modi[i];
-        }
 
-        QSqlDatabase database;
-        if (QSqlDatabase::contains("qt_sql_default_connection"))
-        {
-            database = QSqlDatabase::database("qt_sql_default_connection");
-        }
-        else
-        {
-            database = QSqlDatabase::addDatabase("QSQLITE");
-            database.setDatabaseName("MyDataBase.db");
-        }
-
-        if(database.open()) {
-            QSqlQuery sql_query;
-            sql_query.prepare(update_sql);
-            sql_query.exec();
-
-            model->setQuery(QString("select * from spending;"));
-
-            database.close();
-        }
-
-    }
 
     delete []s;
-    delete []modi;
+
 
 }
 
@@ -747,8 +813,10 @@ void Spending::Confirm4()
             //sql_query.exec();
 
             model->setQuery(QString(select_sql + ";"));
+            int row_cnt = model->rowCount();
 
             database.close();
+            result->setText(tr("筛选到 %1 条记录").arg(row_cnt));
         }
 
     }

@@ -4,6 +4,7 @@
 #include "essay.h"
 #include "spending.h"
 #include "editor.h"
+#include "message.h"
 #include <QStringList>
 
 Review::Review(QWidget *parent) :
@@ -12,12 +13,17 @@ Review::Review(QWidget *parent) :
 {
     ui->setupUi(this);
 
-    setFixedSize(900, 600);
+    setFixedSize(900, 620);
 
     columns = new QString[3];
     columns[0] = "审稿人编号";
     columns[1] = "稿件编号";
     columns[2] = "审阅日期";
+
+    result = new QLabel(this);
+    result->setGeometry(450, 570, 400, 30);
+    result->setFont(QFont(QString::fromLocal8Bit("微软雅黑"), 13));
+    result->show();
 
     tableChoose();
     operation();
@@ -146,10 +152,11 @@ void Review::table()
 
     if(database.open()) {
         QSqlQuery sql_query;
-     /*   QString create_sql = "create table review ( 审稿人编号 varchar(12) primary "
-                             "key constraint fk_editor references editor(编号), "
-                             "稿件编号 varchar(12) constraint fk_essay references "
-                             "essay(稿件编号), 审阅日期 date )";
+
+        QString create_sql = "create table review ( 审稿人编号 varchar(12) constraint "
+                             "fk_editor references editor(编号), 稿件编号 varchar(12) "
+                             "constraint fk_essay references essay(稿件编号), 审阅日期 "
+                             "date, primary key(审稿人编号,稿件编号) )";
           sql_query.prepare(create_sql);
 
         if(!sql_query.exec())
@@ -159,8 +166,9 @@ void Review::table()
         } else {
             qDebug() << "Table created!";
         }
-   */
+
         model->setQuery(QString("select * from review;"));
+        cnt_all = model->rowCount();
         database.close();
 
     } else {
@@ -340,13 +348,11 @@ void Review::info3()
     lab2 = new QLabel(subWin);
     lab3 = new QLabel(subWin);
     lab4 = new QLabel(subWin);
-    lab5 = new QLabel(subWin);
 
     line1 = new QLineEdit(subWin);
     line2 = new QLineEdit(subWin);
     line3 = new QLineEdit(subWin);
     line4 = new QLineEdit(subWin);
-    line5 = new QLineEdit(subWin);
 
     confirm = new QPushButton(subWin);
     cancel = new QPushButton(subWin);
@@ -354,14 +360,12 @@ void Review::info3()
     lab1->setText("审稿人编号");
     lab2->setText("稿件编号");
     lab3->setText("审阅日期");
-    lab4->setText("稿件编号");
-    lab5->setText("审阅日期");
+    lab4->setText("审阅日期");
 
     lab1->setFont(QFont(QString::fromLocal8Bit("微软雅黑"), 10));
     lab2->setFont(QFont(QString::fromLocal8Bit("微软雅黑"), 10));
     lab3->setFont(QFont(QString::fromLocal8Bit("微软雅黑"), 10));
     lab4->setFont(QFont(QString::fromLocal8Bit("微软雅黑"), 10));
-    lab5->setFont(QFont(QString::fromLocal8Bit("微软雅黑"), 10));
 
     confirm->setText("修改");
     cancel->setText("取消");
@@ -372,33 +376,30 @@ void Review::info3()
     lab2->setGeometry(50, 80, 100, 30);
     lab3->setGeometry(50, 120, 100, 30);
     lab4->setGeometry(50, 200, 100, 30);
-    lab5->setGeometry(50, 240, 100, 30);
 
 
     line1->setGeometry(120, 40, 200, 30);
     line2->setGeometry(120, 80, 200, 30);
     line3->setGeometry(120, 120, 200, 30);
-    line4->setGeometry(120, 160, 200, 30);
-    line5->setGeometry(120, 240, 200, 30);
+    line4->setGeometry(120, 200, 200, 30);
 
-    confirm->setGeometry(60, 290, 80, 30);
-    cancel->setGeometry(260, 290, 80, 30);
+
+    confirm->setGeometry(60, 250, 80, 30);
+    cancel->setGeometry(260, 250, 80, 30);
 
     lab1->show();
     lab2->show();
     lab3->show();
     lab4->show();
-    lab5->show();
     line1->show();
     line2->show();
     line3->show();
     line4->show();
-    line5->show();
 
     confirm->show();
     cancel->show();
 
-    subWin->setFixedSize(400, 340);
+    subWin->setFixedSize(400, 300);
     subWin->show();
 
     connect(confirm, SIGNAL(clicked(bool)), this, SLOT(Confirm3()));
@@ -482,45 +483,92 @@ void Review::Confirm1()
     QStringList list;
     list << line1->text() << line2->text() << line3->text() << line4->text();
 */
-    Cancel();
+    if(s[0] == "" || s[1] == "") {
+        Message *message = new Message();
+        QString ss = "组合主键不能为空！";
+        message->set_Text(ss);
+        message->show();
+    } else {
+        QString count_query1 = "select * from editor where 编号 = '" + s[0] + "';";
+        QString count_query2 = "select * from essay where 稿件编号 = '" + s[1] + "';";
+        QString count_query3 = "select * from review where 审稿人编号 = '" + s[0] + "' and "
+                               "稿件编号 = '" + s[1] + "';";
 
-    QString s1 = "", s2 = "";
-    int cnt = 0;
-
-    for(int i = 0; i < 3; i++) {
-        if(s[i] != "") {
-            if(cnt == 0) {
-               s1 += columns[i];
-               s2 += "'" + s[i] + "'";
-               cnt++;
-            } else {
-               s1 += "," + columns[i];
-               s2 += ",'" + s[i] + "'";
-            }
+        QSqlDatabase database;
+        if (QSqlDatabase::contains("qt_sql_default_connection"))
+        {
+            database = QSqlDatabase::database("qt_sql_default_connection");
         }
-    }
+        else
+        {
+            database = QSqlDatabase::addDatabase("QSQLITE");
+            database.setDatabaseName("MyDataBase.db");
+        }
+        if(database.open()) {
 
-    QSqlDatabase database;
-    if (QSqlDatabase::contains("qt_sql_default_connection"))
-    {
-        database = QSqlDatabase::database("qt_sql_default_connection");
-    }
-    else
-    {
-        database = QSqlDatabase::addDatabase("QSQLITE");
-        database.setDatabaseName("MyDataBase.db");
-    }
+            int count1, count2, count3;
+            model->setQuery(count_query1);
+            count1 = model->rowCount();
+            model->setQuery(count_query2);
+            count2 = model->rowCount();
+            model->setQuery(count_query3);
+            count3 = model->rowCount();
+            model->setQuery(QString("select * from review;"));
+            if(count1 == 0) {
+                Message *message = new Message();
+                QString ss = "该审稿人编号不存在！";
+                message->set_Text(ss);
+                message->show();
+            } else if(count2 == 0) {
+                Message *message = new Message();
+                QString ss = "该稿件编号不存在！";
+                message->set_Text(ss);
+                message->show();
+            } else if(count3 != 0) {
+                Message *message = new Message();
+                QString ss = "该组合主键已存在！";
+                message->set_Text(ss);
+                message->show();
+            } else {
 
-    if(database.open()) {
-        QSqlQuery sql_query;
-        QString insert_sql = "insert into review (" + s1 + ") values (" + s2 +")";
+                Cancel();
 
-        sql_query.prepare(insert_sql);
-        sql_query.exec();
+                QString s1 = "", s2 = "";
+                int cnt = 0;
 
-        model->setQuery(QString("select * from review;"));
+                for(int i = 0; i < 3; i++) {
+                    if(s[i] != "") {
+                        if(cnt == 0) {
+                           s1 += columns[i];
+                           s2 += "'" + s[i] + "'";
+                           cnt++;
+                        } else {
+                           s1 += "," + columns[i];
+                           s2 += ",'" + s[i] + "'";
+                        }
+                    }
+                }
 
-        database.close();
+                QSqlQuery sql_query;
+                QString insert_sql = "insert into review (" + s1 + ") values (" + s2 +")";
+                QString modify_sql = "update essay set 审核状态 = '已审核' where essay.稿件编号"
+                                     " = '" + s[1] + "'";
+
+                sql_query.prepare(modify_sql);
+                sql_query.exec();
+
+                sql_query.prepare(insert_sql);
+                sql_query.exec();
+
+                model->setQuery(QString("select * from review;"));
+                result->setText("新增1条记录。");
+                cnt_all++;
+
+            }
+
+            database.close();
+        }
+
     }
 
     delete []s;
@@ -568,12 +616,18 @@ void Review::Confirm2()
 
         if(database.open()) {
             QSqlQuery sql_query;
+
             sql_query.prepare(delete_sql);
             sql_query.exec();
 
             model->setQuery(QString("select * from review;"));
+            int row_cnt = model->rowCount();
 
             database.close();
+
+            result->setText(tr("删除 %1 条记录").arg(cnt_all - row_cnt));
+            cnt_all = row_cnt;
+
         }
 
     }
@@ -591,69 +645,75 @@ void Review::Confirm3()
     s[1] = line2->text();
     s[2] = line3->text();
     s[3] = line4->text();
-    s[4] = line5->text();
 
-    Cancel1();
+    QString count_query = "select * from review where 审稿人编号 = '" + s[0] + "' and "
+                           "稿件编号 = '" + s[1] + "';";
 
-    QString *modi = new QString[5];
-    int cnt1, cnt = 0;
-    for(int i = 0; i < 3; i++) {
-        if(s[i] != "") {
-            if(flag == 0) {
-                modi[cnt++] = columns[i] + "='" + s[i] + "'";
-                flag = 1;
-            } else {
-               modi[cnt++] = "and " + columns[i] + "='" + s[i] + "'";
+    QSqlDatabase database;
+    if (QSqlDatabase::contains("qt_sql_default_connection"))
+    {
+        database = QSqlDatabase::database("qt_sql_default_connection");
+    }
+    else
+    {
+        database = QSqlDatabase::addDatabase("QSQLITE");
+        database.setDatabaseName("MyDataBase.db");
+    }
+    if(database.open()) {
+
+        model->setQuery(count_query);
+        int count = model->rowCount();
+        model->setQuery(QString("select * from review;"));
+
+        if((s[0] != "" || s[1] != "") && count == 0) {
+            Message *message = new Message();
+            QString ss = "该组合主键不存在！";
+            message->set_Text(ss);
+            message->show();
+        } else {
+            Cancel1();
+
+            QString *modi = new QString[3];
+            int cnt = 0;
+            for(int i = 0; i < 3; i++) {
+                if(s[i] != "") {
+                    if(flag == 0) {
+                        modi[cnt++] = columns[i] + "='" + s[i] + "'";
+                        flag = 1;
+                    } else {
+                       modi[cnt++] = "and " + columns[i] + "='" + s[i] + "'";
+                    }
+                }
             }
-        }
-    }
-    cnt1 = cnt;
-    flag = 0;
-    for(int i = 3; i < 5; i++) {
-        if(s[i] != "") {
-            if(flag == 0) {
-                modi[cnt++] = columns[i - 3] + "='" + s[i] + "'";
-                flag = 1;
-            } else {
-                modi[cnt++] = columns[i - 3] + "='" + s[i] + "',";
+
+            if(cnt != 0) {
+                QString update_sql = "update review set 审阅日期 = " + s[3] + " where ";
+                QString cnt_sele = "select * from review where ";
+                for(int i = 0; i < cnt; i++) {
+                    update_sql += modi[i];
+                    cnt_sele += modi[i];
+                }
+                cnt_sele += ";";
+
+                QSqlQuery sql_query;
+
+                model->setQuery(cnt_sele);
+                int row_cnt1 = model->rowCount();
+
+                sql_query.prepare(update_sql);
+                sql_query.exec();
+
+                model->setQuery(QString("select * from review;"));
+                result->setText(tr("更新 %1 条记录").arg(row_cnt1));
             }
+            delete []modi;
         }
+        database.close();
     }
-    if(cnt1 != 0 && cnt1 != cnt ) {
-        QString update_sql = "update review set ";
-        for(int i = cnt - 1; i >= cnt1; i--) {
-            update_sql += modi[i];
-        }
-        update_sql += " where ";
-        for(int i = 0; i < cnt1; i++) {
-            update_sql +=modi[i];
-        }
 
-        QSqlDatabase database;
-        if (QSqlDatabase::contains("qt_sql_default_connection"))
-        {
-            database = QSqlDatabase::database("qt_sql_default_connection");
-        }
-        else
-        {
-            database = QSqlDatabase::addDatabase("QSQLITE");
-            database.setDatabaseName("MyDataBase.db");
-        }
-
-        if(database.open()) {
-            QSqlQuery sql_query;
-            sql_query.prepare(update_sql);
-            sql_query.exec();
-
-            model->setQuery(QString("select * from review;"));
-
-            database.close();
-        }
-
-    }
 
     delete []s;
-    delete []modi;
+
 
 }
 
@@ -702,8 +762,11 @@ void Review::Confirm4()
             //sql_query.exec();
 
             model->setQuery(QString(select_sql + ";"));
+            int row_cnt = model->rowCount();
 
             database.close();
+
+            result->setText(tr("筛选到 %1 条记录").arg(row_cnt));
         }
 
     }

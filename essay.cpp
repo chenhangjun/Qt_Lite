@@ -4,6 +4,7 @@
 #include "author.h"
 #include "spending.h"
 #include "review.h"
+#include "message.h"
 #include <QStringList>
 
 Essay::Essay(QWidget *parent) :
@@ -12,7 +13,7 @@ Essay::Essay(QWidget *parent) :
 {
     ui->setupUi(this);
 
-    setFixedSize(900, 600);
+    setFixedSize(900, 620);
 
     columns = new QString[5];
     columns[0] = "稿件编号";
@@ -20,6 +21,11 @@ Essay::Essay(QWidget *parent) :
     columns[2] = "作者编号";
     columns[3] = "投稿日期";
     columns[4] = "审核状态";
+
+    result = new QLabel(this);
+    result->setGeometry(450, 570, 400, 30);
+    result->setFont(QFont(QString::fromLocal8Bit("微软雅黑"), 13));
+    result->show();
 
     tableChoose();
     operation();
@@ -148,7 +154,7 @@ void Essay::table()
     tableView->show();
 
     if(database.open()) {
-        QSqlQuery sql_query;
+      /*  QSqlQuery sql_query;
        // sql_query.prepare("drop table essay");
         //sql_query.exec();
         QString create_sql = "create table essay ( 稿件编号 varchar(12) primary key, "
@@ -165,8 +171,9 @@ void Essay::table()
             qDebug() << "Table created!";
         }
 
-
+*/
         model->setQuery(QString("select * from essay;"));
+        cnt_all = model->rowCount();
         database.close();
 
     } else {
@@ -567,45 +574,79 @@ void Essay::Confirm1()
     QStringList list;
     list << line1->text() << line2->text() << line3->text() << line4->text();
 */
-    Cancel();
 
-    QString s1 = "", s2 = "";
-    int cnt = 0;
+    if(s[0] == "") {
+        Message *message = new Message();
+        QString ss = "稿件编号不能为空！";
+        message->set_Text(ss);
+        message->show();
+    } else {
 
-    for(int i = 0; i < 5; i++) {
-        if(s[i] != "") {
-            if(cnt == 0) {
-               s1 += columns[i];
-               s2 += "'" + s[i] + "'";
-               cnt++;
-            } else {
-               s1 += "," + columns[i];
-               s2 += ",'" + s[i] + "'";
-            }
+        QSqlDatabase database;
+        if (QSqlDatabase::contains("qt_sql_default_connection"))
+        {
+            database = QSqlDatabase::database("qt_sql_default_connection");
         }
-    }
+        else
+        {
+            database = QSqlDatabase::addDatabase("QSQLITE");
+            database.setDatabaseName("MyDataBase.db");
+        }
 
-    QSqlDatabase database;
-    if (QSqlDatabase::contains("qt_sql_default_connection"))
-    {
-        database = QSqlDatabase::database("qt_sql_default_connection");
-    }
-    else
-    {
-        database = QSqlDatabase::addDatabase("QSQLITE");
-        database.setDatabaseName("MyDataBase.db");
-    }
+        if(database.open()) {
 
-    if(database.open()) {
-        QSqlQuery sql_query;
-        QString insert_sql = "insert into essay (" + s1 + ") values (" + s2 +")";
+            QString cnt_sele1 = "select * from essay where 稿件编号 = '" + s[0] + "';";
+            QString cnt_sele2 = "select * from author where 作者编号 = '" + s[2] + "';";
+            model->setQuery(cnt_sele1);
+            int row_cnt1 = model->rowCount();
+            model->setQuery(cnt_sele2);
+            int row_cnt2 = model->rowCount();
+            model->setQuery(QString("select * from essay;"));
+            if(row_cnt1 > 0) {
+                Message *message = new Message();
+                QString ss = "该稿件编号已存在！";
+                message->set_Text(ss);
+                message->show();
+            } else if(s[2] != "" && row_cnt2 == 0) {
+                Message *message = new Message();
+                QString ss = "该作者编号不存在！";
+                message->set_Text(ss);
+                message->show();
+            } else {
+                Cancel();
 
-        sql_query.prepare(insert_sql);
-        sql_query.exec();
+                QString s1 = "", s2 = "";
+                int cnt = 0;
 
-        model->setQuery(QString("select * from essay;"));
+                for(int i = 0; i < 5; i++) {
+                    if(s[i] != "") {
+                        if(cnt == 0) {
+                           s1 += columns[i];
+                           s2 += "'" + s[i] + "'";
+                           cnt++;
+                        } else {
+                           s1 += "," + columns[i];
+                           s2 += ",'" + s[i] + "'";
+                        }
+                    }
+                }
 
-        database.close();
+                QSqlQuery sql_query;
+                QString insert_sql = "insert into essay (" + s1 + ") values (" + s2 +")";
+
+                sql_query.prepare(insert_sql);
+                sql_query.exec();
+
+                model->setQuery(QString("select * from essay;"));
+                result->setText("新增1条记录。");
+                cnt_all++;
+
+            }
+
+            database.close();
+
+        }
+
     }
 
     delete []s;
@@ -674,8 +715,13 @@ void Essay::Confirm2()
 
 
             model->setQuery(QString("select * from essay;"));
+            int row_cnt = model->rowCount();
 
             database.close();
+
+            result->setText(tr("删除 %1 条记录").arg(cnt_all - row_cnt));
+            cnt_all = row_cnt;
+
         }
 
     }
@@ -699,67 +745,89 @@ void Essay::Confirm3()
     s[7] = line8->text();
     s[8] = line9->text();
 
-    Cancel1();
-
-    QString *modi = new QString[8];
-    int cnt1, cnt = 0;
-    for(int i = 0; i < 5; i++) {
-        if(s[i] != "") {
-            if(flag == 0) {
-                modi[cnt++] = columns[i] + "='" + s[i] + "'";
-                flag = 1;
-            } else {
-               modi[cnt++] = "and " + columns[i] + "='" + s[i] + "'";
-            }
-        }
+    QString cnt_sele = "select * from author where 作者编号 = '" + s[6] + "';";
+    QString count_sql = "select * from essay where ";
+    QSqlDatabase database;
+    if (QSqlDatabase::contains("qt_sql_default_connection"))
+    {
+        database = QSqlDatabase::database("qt_sql_default_connection");
     }
-    cnt1 = cnt;
-    flag = 0;
-    for(int i = 5; i < 9; i++) {
-        if(s[i] != "") {
-            if(flag == 0) {
-                modi[cnt++] = columns[i - 4] + "='" + s[i] + "'";
-                flag = 1;
-            } else {
-                modi[cnt++] = columns[i - 4] + "='" + s[i] + "',";
-            }
-        }
+    else
+    {
+        database = QSqlDatabase::addDatabase("QSQLITE");
+        database.setDatabaseName("MyDataBase.db");
     }
-    if(cnt1 != 0 && cnt1 != cnt ) {
-        QString update_sql = "update essay set ";
-        for(int i = cnt - 1; i >= cnt1; i--) {
-            update_sql += modi[i];
-        }
-        update_sql += " where ";
-        for(int i = 0; i < cnt1; i++) {
-            update_sql +=modi[i];
+    if(database.open()) {
+        model->setQuery(cnt_sele);
+        int row_cnt = model->rowCount();
+        model->setQuery(QString("select * from essay;"));
+
+        if(s[6] != "" && row_cnt == 0) {
+            Message *message = new Message();
+            QString ss = "该作者编号不存在！";
+            message->set_Text(ss);
+            message->show();
+        } else {
+            Cancel1();
+
+            QString *modi = new QString[8];
+            int cnt1, cnt = 0;
+            for(int i = 0; i < 5; i++) {
+                if(s[i] != "") {
+                    if(flag == 0) {
+                        modi[cnt++] = columns[i] + "='" + s[i] + "'";
+                        flag = 1;
+                    } else {
+                       modi[cnt++] = "and " + columns[i] + "='" + s[i] + "'";
+                    }
+                }
+            }
+            cnt1 = cnt;
+            flag = 0;
+            for(int i = 5; i < 9; i++) {
+                if(s[i] != "") {
+                    if(flag == 0) {
+                        modi[cnt++] = columns[i - 4] + "='" + s[i] + "'";
+                        flag = 1;
+                    } else {
+                        modi[cnt++] = columns[i - 4] + "='" + s[i] + "',";
+                    }
+                }
+            }
+            if(cnt1 != 0 && cnt1 != cnt ) {
+                QString update_sql = "update essay set ";
+                for(int i = cnt - 1; i >= cnt1; i--) {
+                    update_sql += modi[i];
+                }
+                update_sql += " where ";
+                for(int i = 0; i < cnt1; i++) {
+                    update_sql += modi[i];
+                    count_sql += modi[i];
+                }
+                count_sql += ";";
+
+                QSqlQuery sql_query;
+
+                model->setQuery(count_sql);
+                int row_cnt1 = model->rowCount();
+
+                sql_query.prepare(update_sql);
+                sql_query.exec();
+
+                model->setQuery(QString("select * from essay;"));
+
+                result->setText(tr("更新 %1 条记录").arg(row_cnt1));
+
+
+             }
+             delete []modi;
         }
 
-        QSqlDatabase database;
-        if (QSqlDatabase::contains("qt_sql_default_connection"))
-        {
-            database = QSqlDatabase::database("qt_sql_default_connection");
-        }
-        else
-        {
-            database = QSqlDatabase::addDatabase("QSQLITE");
-            database.setDatabaseName("MyDataBase.db");
-        }
-
-        if(database.open()) {
-            QSqlQuery sql_query;
-            sql_query.prepare(update_sql);
-            sql_query.exec();
-
-            model->setQuery(QString("select * from essay;"));
-
-            database.close();
-        }
+        database.close();
 
     }
 
     delete []s;
-    delete []modi;
 
 }
 
@@ -810,8 +878,10 @@ void Essay::Confirm4()
             //sql_query.exec();
 
             model->setQuery(QString(select_sql + ";"));
+            int row_cnt = model->rowCount();
 
             database.close();
+            result->setText(tr("筛选到 %1 条记录").arg(row_cnt));
         }
 
     }

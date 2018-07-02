@@ -73,7 +73,9 @@ void Login::Enter()
         MainWindow *m = new MainWindow();
         m->show();
     } else {    //用户名或密码错误
+        QString ss = "用户名或密码错误!!!\n       请重新输入。";
         Message *message = new Message();
+        message->set_Text(ss);
         message->show();
     }
 }
